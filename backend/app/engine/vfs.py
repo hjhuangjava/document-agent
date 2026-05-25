@@ -4,7 +4,7 @@ import shutil
 import uuid
 from pathlib import Path
 
-from backend.app.config import settings
+from app.config import settings
 
 
 class VirtualFileSystem:

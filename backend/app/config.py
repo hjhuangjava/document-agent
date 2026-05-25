@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "sqlite:///./data/document_agent.db"
+    database_url: str = "mysql+pymysql://root:my12345@192.168.39.100:3306/document_agent"
 
     # LLM (Chinese LLM via OpenAI-compatible API)
     llm_base_url: str = "https://api.deepseek.com/v1"

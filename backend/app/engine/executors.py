@@ -3,7 +3,7 @@
 from langgraph.prebuilt import ToolNode
 from langchain_openai import ChatOpenAI
 
-from backend.app.config import settings
+from app.config import settings
 from app.engine.state import AgentState
 from app.engine.tools import TOOL_REGISTRY
 

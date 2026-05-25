@@ -28,6 +28,32 @@ export const patchTool = (name: string, body: { description?: string; enabled?: 
   request<Tool>(`/tools/${name}`, { method: "PATCH", body: JSON.stringify(body) });
 
 // ---------------------------------------------------------------------------
+// Knowledge
+// ---------------------------------------------------------------------------
+
+export interface KnowledgeSearchResult {
+  id: string;
+  title: string;
+  content: string;
+  score: number;
+  source: string;
+  category: string;
+  updated_at: string;
+}
+
+export interface KnowledgeSearchResponse {
+  query: string;
+  results: KnowledgeSearchResult[];
+  total: number;
+}
+
+export const searchKnowledge = (query: string, top_k = 5) =>
+  request<KnowledgeSearchResponse>("/knowledge/search", {
+    method: "POST",
+    body: JSON.stringify({ query, top_k }),
+  });
+
+// ---------------------------------------------------------------------------
 // Workflows
 // ---------------------------------------------------------------------------
 

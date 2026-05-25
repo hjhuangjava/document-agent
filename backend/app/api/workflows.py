@@ -13,7 +13,7 @@ from app.schemas.workflow import WorkflowCreate, WorkflowOut, WorkflowRunRequest
 from app.engine.builder import build_workflow
 from app.engine.sse import translate_stream
 from app.engine.tools import get_vfs, release_vfs
-from backend.app.config import settings
+from app.config import settings
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 

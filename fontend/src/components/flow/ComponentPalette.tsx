@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bot, Wrench, Search, Database, Shield, Pen } from "lucide-react";
+import { Bot, Wrench, Search, Database, Shield, Pen, BookOpen } from "lucide-react";
 import { listTools } from "@/lib/api";
 import type { Tool as APITool, NodeDef } from "@/lib/types";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   data_source: <Database className="h-4 w-4" />,
+  knowledge: <BookOpen className="h-4 w-4" />,
   executor: <Pen className="h-4 w-4" />,
   validator: <Shield className="h-4 w-4" />,
   interactor: <Bot className="h-4 w-4" />,
+};
+
+const LABEL_MAP: Record<string, string> = {
+  data_source: "数据源",
+  knowledge: "知识库",
+  executor: "执行器",
+  validator: "校验器",
+  interactor: "交互",
 };
 
 interface ComponentPaletteProps {
@@ -100,7 +109,7 @@ export function ComponentPalette({ onAddNode }: ComponentPaletteProps) {
           <div key={cat}>
             <div className="text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
               {ICON_MAP[cat] || <Wrench className="h-3 w-3" />}
-              {cat}
+              {LABEL_MAP[cat] || cat}
             </div>
             {items.map((t) => (
               <button

@@ -75,6 +75,21 @@ def seed(db: Session):
             ], ensure_ascii=False),
         ),
         Tool(
+            name="知识库查询",
+            description="根据关键词检索知识库文档，返回相关文档内容及相似度评分。",
+            component_type="knowledge_search",
+            category="knowledge",
+            enabled=True,
+            inputs=json.dumps([
+                {"name": "query", "type": "string", "required": True, "description": "检索关键词"},
+                {"name": "top_k", "type": "number", "default": 5, "description": "返回结果数量上限"},
+            ], ensure_ascii=False),
+            outputs=json.dumps([
+                {"name": "results", "type": "json", "description": "检索结果列表 [{id, title, content, score, source}]"},
+                {"name": "total", "type": "number", "description": "匹配文档总数"},
+            ], ensure_ascii=False),
+        ),
+        Tool(
             name="用户确认",
             description="HITL 节点——暂停工作流等待用户确认。",
             component_type="human_confirm",

@@ -7,6 +7,7 @@ class ToolOut(BaseModel):
     name: str
     description: str
     category: str
+    component_type: str
     inputs: str  # JSON string (stored as-is from DB)
     outputs: str  # JSON string
     enabled: bool

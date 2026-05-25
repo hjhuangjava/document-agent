@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from langchain_core.tools import tool
 
 from app.engine.vfs import VirtualFileSystem
+from app.api.knowledge import _simple_search, MOCK_DOCS
 
 # ---------------------------------------------------------------------------
 # Session-level VFS cache (keyed by session_id)
@@ -87,6 +88,15 @@ def save_to_vfs(filename: str, content: str, vfs_session_id: str) -> str:
     return vfs.write(filename, content)
 
 
+@tool
+def knowledge_search(query: str, top_k: int = 5) -> dict:
+    """检索知识库文档，根据关键词返回相关文档内容及相似度评分。
+    query 为检索关键词，top_k 为返回结果数量上限。
+    返回 {results: [{id, title, content, score, source, category}], total: int}。"""
+    results = _simple_search(query, MOCK_DOCS, top_k)
+    return {"results": results, "total": len(results)}
+
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -96,4 +106,5 @@ TOOL_REGISTRY: dict[str, callable] = {
     "check_consistency": check_consistency,
     "generate_chart": generate_chart,
     "save_to_vfs": save_to_vfs,
+    "knowledge_search": knowledge_search,
 }
