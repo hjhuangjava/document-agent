@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:langchain-ai.github.io)",
+      "WebFetch(domain:docs.langchain.com)",
+      "Bash(uv sync:*)",
+      "Bash(curl:*)",
+      "Bash(sh:*)",
+      "Bash(source:*)",
+      "Bash(export PATH=\"$HOME/.local/bin:$PATH\")",
+      "Bash(~/.local/bin/uv sync)",
+      "Bash(python3:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(/tmp/docagent-venv/bin/python -m ensurepip:*)",
+      "Bash(/tmp/docagent-venv/bin/pip install:*)",
+      "Bash(/tmp/docagent-venv/bin/pip3 install:*)"
+    ]
+  }
+}
