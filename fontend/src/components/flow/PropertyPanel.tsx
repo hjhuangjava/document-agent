@@ -9,15 +9,20 @@ interface PropertyPanelProps {
   onChange: (updated: NodeDef) => void;
   onClose: () => void;
   onDelete: () => void;
+  readOnly?: boolean;
 }
 
-export function PropertyPanel({ nodeDef, onChange, onClose, onDelete }: PropertyPanelProps) {
+export function PropertyPanel({ nodeDef, onChange, onClose, onDelete, readOnly = false }: PropertyPanelProps) {
   const isAgent = nodeDef.execution_mode === "agent";
   const [tab, setTab] = useState<"basic" | "io">("basic");
 
-  const update = (patch: Partial<NodeDef>) => onChange({ ...nodeDef, ...patch });
+  const update = (patch: Partial<NodeDef>) => {
+    if (readOnly) return;
+    onChange({ ...nodeDef, ...patch });
+  };
 
   const updateAgentConfig = (patch: Partial<NonNullable<NodeDef["agent_config"]>>) => {
+    if (readOnly) return;
     update({ agent_config: { ...nodeDef.agent_config!, ...patch } });
   };
 
@@ -55,6 +60,7 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete }: Property
               className="w-full border rounded px-2 py-1 text-sm"
               value={nodeDef.name || ""}
               onChange={(e) => update({ name: e.target.value })}
+              disabled={readOnly}
             />
 
             <label className="block text-xs text-gray-500">类型</label>
@@ -69,6 +75,7 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete }: Property
                   className="w-full border rounded px-2 py-1 text-sm h-32"
                   value={nodeDef.agent_config.system_prompt}
                   onChange={(e) => updateAgentConfig({ system_prompt: e.target.value })}
+                  disabled={readOnly}
                 />
 
                 <label className="block text-xs text-gray-500">Temperature</label>
@@ -87,6 +94,7 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete }: Property
                       },
                     })
                   }
+                  disabled={readOnly}
                 />
 
                 <label className="block text-xs text-gray-500">绑定工具</label>
@@ -110,6 +118,7 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete }: Property
               type="checkbox"
               checked={nodeDef.requires_approval ?? false}
               onChange={(e) => update({ requires_approval: e.target.checked })}
+              disabled={readOnly}
             />
           </>
         )}
@@ -158,15 +167,17 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete }: Property
         )}
       </div>
 
-      {/* Delete button */}
-      <div className="p-3 border-t">
-        <button
-          onClick={onDelete}
-          className="w-full py-2 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50"
-        >
-          删除节点
-        </button>
-      </div>
+      {/* Delete button – only in edit mode */}
+      {!readOnly && (
+        <div className="p-3 border-t">
+          <button
+            onClick={onDelete}
+            className="w-full py-2 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50"
+          >
+            删除节点
+          </button>
+        </div>
+      )}
     </div>
   );
 }

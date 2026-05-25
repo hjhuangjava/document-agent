@@ -105,12 +105,37 @@ export interface Workflow {
 }
 
 // ---------------------------------------------------------------------------
+// Debug (workflow test run)
+// ---------------------------------------------------------------------------
+
+export interface NodeResult {
+  nodeId: string;
+  nodeName: string;
+  success: boolean;
+  output: string;
+  error?: string;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+export interface DebugState {
+  isRunning: boolean;
+  businessContext: string;
+  nodeResults: Record<string, NodeResult>;
+  status: "idle" | "running" | "done" | "error";
+  errorMessage?: string;
+  finalOutput: string;
+  activeNodeId: string | null;
+  completedNodeIds: string[];
+}
+
+// ---------------------------------------------------------------------------
 // SSE events (from backend translate_stream)
 // ---------------------------------------------------------------------------
 
 export type SSEEvent =
   | { event: "node_started"; data: { node_id: string; node_name: string } }
-  | { event: "node_completed"; data: { node_id: string; node_name: string } }
+  | { event: "node_completed"; data: { node_id: string; node_name: string; output?: string } }
   | { event: "tool_invoked"; data: { tool_name: string } }
   | { event: "tool_result"; data: { tool_name: string; summary: string } }
   | { event: "text_delta"; data: { content: string } }

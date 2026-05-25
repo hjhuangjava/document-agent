@@ -17,3 +17,5 @@ class AgentState(TypedDict):
     draft_content: str
     consistency_report: ConsistencyResult
     vfs_artifacts: list[str]
+    _vfs_session_id: str
+    _meta: dict  # dynamic metadata e.g. retry counters

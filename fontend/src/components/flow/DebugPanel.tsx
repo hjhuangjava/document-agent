@@ -1,10 +1,11 @@
 "use client";
 
 import { X, Play, Loader2, CheckCircle, XCircle as XCircleIcon } from "lucide-react";
-import type { DebugState } from "@/lib/types";
+import type { DebugState, NodeResult } from "@/lib/types";
 
 interface DebugPanelProps {
   debugState: DebugState;
+  selectedNodeId?: string | null;
   onBusinessContextChange: (value: string) => void;
   onStartDebug: () => void;
   onClose: () => void;
@@ -12,6 +13,7 @@ interface DebugPanelProps {
 
 export function DebugPanel({
   debugState,
+  selectedNodeId,
   onBusinessContextChange,
   onStartDebug,
   onClose,
@@ -19,6 +21,9 @@ export function DebugPanel({
   const { isRunning, businessContext, nodeResults, status, errorMessage, finalOutput } = debugState;
   const results = Object.values(nodeResults);
   const hasResults = results.length > 0;
+
+  const selectedResult: NodeResult | undefined =
+    selectedNodeId && nodeResults[selectedNodeId] ? nodeResults[selectedNodeId] : undefined;
 
   return (
     <div className="w-80 border-l bg-white flex flex-col">
@@ -87,9 +92,9 @@ export function DebugPanel({
           results.map((r) => (
             <div
               key={r.nodeId}
-              className={`flex items-start gap-2 text-xs py-2 border-b border-gray-50 ${
-                r.success ? "text-green-700" : "text-red-700"
-              }`}
+              className={`flex items-start gap-2 text-xs py-2 border-b border-gray-50 cursor-pointer rounded px-1 ${
+                selectedNodeId === r.nodeId ? "bg-blue-50 ring-1 ring-blue-200" : "hover:bg-gray-50"
+              } ${r.success ? "text-green-700" : "text-red-700"}`}
             >
               {r.success ? (
                 <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
@@ -103,6 +108,28 @@ export function DebugPanel({
             </div>
           ))}
       </div>
+
+      {/* Selected Node Detail */}
+      {selectedResult && (
+        <div className="p-3 border-t">
+          <label className="block text-xs text-gray-500 mb-1">
+            节点详情: {selectedResult.nodeName || selectedResult.nodeId}
+          </label>
+          <div className="text-xs bg-gray-50 rounded p-2 max-h-40 overflow-y-auto whitespace-pre-wrap break-all">
+            {selectedResult.output || "(无输出)"}
+          </div>
+          {selectedResult.startedAt && (
+            <div className="text-xs text-gray-400 mt-1">
+              开始: {new Date(selectedResult.startedAt).toLocaleTimeString()}
+            </div>
+          )}
+          {selectedResult.completedAt && (
+            <div className="text-xs text-gray-400">
+              完成: {new Date(selectedResult.completedAt).toLocaleTimeString()}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Final Output */}
       {finalOutput && (

@@ -19,9 +19,14 @@ async def translate_stream(app, inputs: dict, config: dict, node_names: dict[str
             }
 
         elif kind == "on_chain_end" and node in node_names:
+            output_str = str(event.get("data", {}).get("output", ""))
             yield {
                 "event": "node_completed",
-                "data": {"node_id": node, "node_name": node_names[node]},
+                "data": {
+                    "node_id": node,
+                    "node_name": node_names[node],
+                    "output": output_str[:500],
+                },
             }
 
         elif kind == "on_tool_start":

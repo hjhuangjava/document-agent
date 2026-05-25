@@ -71,6 +71,14 @@ export const createWorkflow = (body: {
   is_published?: boolean;
 }) => request<Workflow>("/workflows", { method: "POST", body: JSON.stringify(body) });
 
+export const updateWorkflow = (id: number, body: {
+  name?: string;
+  description?: string;
+  nodes?: NodeDef[];
+  edges?: EdgeDef[];
+  is_published?: boolean;
+}) => request<Workflow>(`/workflows/${id}`, { method: "PUT", body: JSON.stringify(body) });
+
 export const deleteWorkflow = (id: number) =>
   request<void>(`/workflows/${id}`, { method: "DELETE" });
 
@@ -103,11 +111,13 @@ export async function runWorkflowPost(
   businessContext: Record<string, unknown>,
   onEvent: (eventName: string, data: unknown) => void,
   onError?: (err: Error) => void,
+  signal?: AbortSignal,
 ) {
   const res = await fetch(`${API_BASE}/workflows/${workflowId}/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
     body: JSON.stringify({ business_context: businessContext }),
+    signal,
   });
 
   if (!res.ok || !res.body) {

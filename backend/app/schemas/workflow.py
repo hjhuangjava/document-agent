@@ -95,5 +95,13 @@ class WorkflowOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class WorkflowUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    nodes: list[NodeDef] | None = None
+    edges: list[EdgeDef] | None = None
+    is_published: bool | None = None
+
+
 class WorkflowRunRequest(BaseModel):
     business_context: dict

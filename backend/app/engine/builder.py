@@ -84,18 +84,21 @@ def _register_edges(workflow: StateGraph, edges: list[dict]):
 
     for src, group in groups.items():
         max_retries = max((e.get("max_retries", 3) for e in group), default=3)
-        counter_key = f"_retry_{src}"
 
-        def _make_router(edges_list, _max=max_retries, _ck=counter_key):
+        def _make_router(edges_list, src_node=src, _max=max_retries):
             def router(state: AgentState) -> str:
-                count = state.get(_ck, 0)
+                meta = state.get("_meta", {})
+                count = meta.get(src_node, 0)
                 for e in edges_list:
                     cond = e["condition"]
                     actual = _get_state_path(state, cond["field"])
                     if _eval_condition(actual, cond["operator"], cond["value"]):
-                        # Back-edge guard
+                        # Back-edge guard: prevent infinite retries
                         if e["target"] != "__end__" and count >= _max:
                             return END
+                        # Increment retry counter for back-edges
+                        if e["target"] != "__end__":
+                            meta[src_node] = count + 1
                         return e["target"] if e["target"] != "__end__" else END
                 return END
             return router
