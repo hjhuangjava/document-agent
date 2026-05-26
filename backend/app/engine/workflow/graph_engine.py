@@ -77,10 +77,10 @@ class GraphEngine:
                 node_id = self._ready_queue.popleft()
 
                 node = self._graph.nodes.get(node_id)
-                if node is None or not hasattr(node, "run_async"):
+                if node is None:
                     continue
 
-                # Execute node (async generator)
+                # Execute node via BaseNode.run_async lifecycle
                 async for event in node.run_async():
                     # Internal dispatch → state updates + edge processing
                     self._event_handler.handle(event)

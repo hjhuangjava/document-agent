@@ -225,6 +225,13 @@ def knowledge_search(query: str, top_k: int = 5) -> dict:
     return {"results": results, "total": len(results)}
 
 
+@tool
+def user_input(content: str) -> dict:
+    """用户输入节点——透传用户在画布上输入的内容。
+    content 为文本内容，直接透传返回供下游节点引用。"""
+    return {"content": content}
+
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -235,4 +242,5 @@ TOOL_REGISTRY: dict[str, callable] = {
     "generate_chart": generate_chart,
     "save_to_vfs": save_to_vfs,
     "knowledge_search": knowledge_search,
+    "user_input": user_input,
 }

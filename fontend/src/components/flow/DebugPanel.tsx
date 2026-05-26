@@ -89,9 +89,9 @@ export function DebugPanel({
         )}
 
         {hasResults &&
-          results.map((r) => (
+          results.map((r, i) => (
             <div
-              key={r.nodeId}
+              key={`${r.nodeId || "unknown"}-${i}`}
               className={`flex items-start gap-2 text-xs py-2 border-b border-gray-50 cursor-pointer rounded px-1 ${
                 selectedNodeId === r.nodeId ? "bg-blue-50 ring-1 ring-blue-200" : "hover:bg-gray-50"
               } ${r.success ? "text-green-700" : "text-red-700"}`}

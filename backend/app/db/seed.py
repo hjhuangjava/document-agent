@@ -103,6 +103,19 @@ def seed(db: Session):
                 {"name": "feedback", "type": "string", "description": "用户反馈"},
             ], ensure_ascii=False),
         ),
+        Tool(
+            name="用户输入",
+            description="工作流起始节点——用户在画布上输入内容，供下游节点引用。",
+            component_type="user_input",
+            category="interactor",
+            enabled=True,
+            inputs=json.dumps([
+                {"name": "content", "type": "string", "required": True, "description": "用户输入内容"},
+            ], ensure_ascii=False),
+            outputs=json.dumps([
+                {"name": "content", "type": "string", "description": "用户输入内容透传"},
+            ], ensure_ascii=False),
+        ),
     ]
     db.add_all(tools)
 

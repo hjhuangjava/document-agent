@@ -36,12 +36,94 @@ interface FlowCanvasProps {
   onNameChange: (name: string) => void;
 }
 
-/** Convert NodeDef[] to React Flow Node[] */
-function toFlowNodes(defs: NodeDef[]): Node[] {
-  return defs.map((d, i) => ({
+/** Grid layout constants */
+const NODES_PER_ROW = 4;
+const H_SPACING = 320;
+const V_SPACING = 280;
+const LAYOUT_OFFSET_X = 80;
+const LAYOUT_OFFSET_Y = 80;
+
+/**
+ * Compute grid positions for nodes using BFS topological order.
+ * Starts from entry nodes (connected from __start__ or with no incoming edges),
+ * traverses the graph following edges, and places up to NODES_PER_ROW per row.
+ */
+function computeLayout(defs: NodeDef[], allEdges: EdgeDef[]): Map<string, { x: number; y: number }> {
+  const positions = new Map<string, { x: number; y: number }>();
+
+  if (defs.length === 0) return positions;
+
+  // Build adjacency (source -> targets) and incoming counts
+  const adjacency = new Map<string, string[]>();
+  const incomingCount = new Map<string, number>();
+  const nodeIds = new Set(defs.map((d) => d.id));
+
+  for (const d of defs) {
+    adjacency.set(d.id, []);
+    incomingCount.set(d.id, 0);
+  }
+
+  for (const e of allEdges) {
+    if (nodeIds.has(e.source) && nodeIds.has(e.target)) {
+      adjacency.get(e.source)!.push(e.target);
+      incomingCount.set(e.target, (incomingCount.get(e.target) || 0) + 1);
+    }
+  }
+
+  // Find root nodes: those connected from __start__, or with no incoming edges
+  const startEdges = allEdges.filter((e) => e.source === "__start__" && nodeIds.has(e.target));
+  let rootNodes: string[];
+  if (startEdges.length > 0) {
+    rootNodes = startEdges.map((e) => e.target);
+  } else {
+    rootNodes = defs.filter((d) => (incomingCount.get(d.id) || 0) === 0).map((d) => d.id);
+  }
+
+  // BFS traversal
+  const visited = new Set<string>();
+  const queue: string[] = [...rootNodes];
+  const ordered: string[] = [];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    ordered.push(current);
+    for (const child of adjacency.get(current) || []) {
+      if (!visited.has(child) && !queue.includes(child)) {
+        queue.push(child);
+      }
+    }
+  }
+
+  // Append any unvisited orphan nodes
+  for (const d of defs) {
+    if (!visited.has(d.id)) {
+      ordered.push(d.id);
+    }
+  }
+
+  // Assign grid positions
+  ordered.forEach((nodeId, index) => {
+    const row = Math.floor(index / NODES_PER_ROW);
+    const col = index % NODES_PER_ROW;
+    positions.set(nodeId, {
+      x: LAYOUT_OFFSET_X + col * H_SPACING,
+      y: LAYOUT_OFFSET_Y + row * V_SPACING,
+    });
+  });
+
+  return positions;
+}
+
+/** Convert NodeDef[] to React Flow Node[], placing nodes on a grid by topological order */
+function toFlowNodes(defs: NodeDef[], allEdges: EdgeDef[]): Node[] {
+  const positions = computeLayout(defs, allEdges);
+  const fallback = { x: 100, y: 200 };
+  return defs.map((d) => ({
     id: d.id,
     type: "custom",
-    position: { x: 100 + i * 250, y: 200 },
+    position: positions.get(d.id) || fallback,
     data: { nodeDef: d },
   }));
 }
@@ -73,7 +155,7 @@ export function FlowCanvas({
   onEnterEdit,
   onNameChange,
 }: FlowCanvasProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(toFlowNodes(initialNodes));
+  const [nodes, setNodes, onNodesChange] = useNodesState(toFlowNodes(initialNodes, initialEdges));
   const [edges, setEdges, onEdgesChange] = useEdgesState(toFlowEdges(initialEdges));
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isDebugMode, setIsDebugMode] = useState(false);

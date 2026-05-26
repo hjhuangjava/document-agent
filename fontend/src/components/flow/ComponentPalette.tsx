@@ -116,6 +116,10 @@ export function ComponentPalette({ onAddNode }: ComponentPaletteProps) {
                 key={t.name}
                 draggable
                 onDragStart={(e) => {
+                  const input_bindings =
+                    t.component_type === "user_input"
+                      ? [{ name: "content", bind: { type: "static" as const, value: "" }, required: true }]
+                      : [];
                   e.dataTransfer.setData(
                     "application/json",
                     JSON.stringify({
@@ -125,7 +129,7 @@ export function ComponentPalette({ onAddNode }: ComponentPaletteProps) {
                       category: t.category,
                       tool_config: {
                         tool_name: t.component_type,
-                        input_bindings: [],
+                        input_bindings,
                         output_bindings: [],
                       },
                     })
@@ -139,7 +143,10 @@ export function ComponentPalette({ onAddNode }: ComponentPaletteProps) {
                     category: t.category,
                     tool_config: {
                       tool_name: t.component_type,
-                      input_bindings: [],
+                      input_bindings:
+                        t.component_type === "user_input"
+                          ? [{ name: "content", bind: { type: "static", value: "" }, required: true }]
+                          : [],
                       output_bindings: [],
                     },
                   })

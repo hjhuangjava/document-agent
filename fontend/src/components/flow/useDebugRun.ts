@@ -57,18 +57,19 @@ export function useDebugRun() {
           if (controller.signal.aborted) return;
 
           if (eventName === "node_started") {
-            const d = data as { node_id: string; node_name: string };
+            const d = data as { node_id?: string; node_name?: string };
+            const nodeId = d.node_id ?? `unknown-${Date.now()}`;
             const result: NodeResult = {
-              nodeId: d.node_id,
-              nodeName: d.node_name,
+              nodeId,
+              nodeName: d.node_name ?? nodeId,
               success: false,
               output: "",
               startedAt: new Date().toISOString(),
             };
             setDebugState((prev) => ({
               ...prev,
-              activeNodeId: d.node_id,
-              nodeResults: { ...prev.nodeResults, [d.node_id]: result },
+              activeNodeId: nodeId,
+              nodeResults: { ...prev.nodeResults, [nodeId]: result },
             }));
           } else if (eventName === "text_delta") {
             const d = data as { content: string };
@@ -91,13 +92,14 @@ export function useDebugRun() {
               };
             });
           } else if (eventName === "node_completed") {
-            const d = data as { node_id: string; node_name: string; output?: string };
+            const d = data as { node_id?: string; node_name?: string; output?: string };
+            const nodeId = d.node_id ?? `unknown-${Date.now()}`;
             setDebugState((prev) => {
-              const existing = prev.nodeResults[d.node_id];
+              const existing = prev.nodeResults[nodeId];
               const completedResult: NodeResult = {
                 ...existing,
-                nodeId: d.node_id,
-                nodeName: d.node_name,
+                nodeId,
+                nodeName: d.node_name ?? nodeId,
                 success: true,
                 output: d.output ?? existing?.output ?? "",
                 completedAt: new Date().toISOString(),
@@ -105,8 +107,8 @@ export function useDebugRun() {
               return {
                 ...prev,
                 activeNodeId: null,
-                completedNodeIds: [...prev.completedNodeIds, d.node_id],
-                nodeResults: { ...prev.nodeResults, [d.node_id]: completedResult },
+                completedNodeIds: [...prev.completedNodeIds, nodeId],
+                nodeResults: { ...prev.nodeResults, [nodeId]: completedResult },
               };
             });
           } else if (eventName === "error") {

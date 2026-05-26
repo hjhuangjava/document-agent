@@ -1,6 +1,11 @@
 """SSE event translator – GraphEngine events → business SSE dicts.
 
 Replaces the LangGraph ``astream_events`` translator.
+
+Yields dicts with ``{"event": str, "data": str}`` where *data* is a
+JSON-encoded string.  ``sse_starlette.EventSourceResponse`` will pass
+the string through verbatim, ensuring the client receives valid JSON
+(not Python repr with single-quotes).
 """
 
 from __future__ import annotations
@@ -20,76 +25,53 @@ from app.engine.workflow.events import (
 )
 
 
-async def translate_stream(engine):
-    """Consume ``engine.run()`` events and yield SSE-ready dicts.
+def _sse(event: str, data: dict) -> dict:
+    """Build an SSE frame with JSON-serialised data string."""
+    return {"event": event, "data": json.dumps(data, ensure_ascii=False)}
 
-    Each yielded dict has the shape ``{"event": str, "data": dict}``,
-    compatible with the existing frontend SSE protocol.
-    """
+
+async def translate_stream(engine):
+    """Consume ``engine.run()`` events and yield SSE-ready dicts."""
     async for event in engine.run():
 
         if isinstance(event, GraphRunStartedEvent):
-            continue  # Implicit; nothing to broadcast
+            continue
 
         elif isinstance(event, NodeRunStartedEvent):
-            yield {
-                "event": "node_started",
-                "data": {
-                    "node_id": event.node_id,
-                    "node_name": event.node_name,
-                },
-            }
+            yield _sse("node_started", {
+                "node_id": event.node_id,
+                "node_name": event.node_name,
+            })
 
         elif isinstance(event, NodeRunStreamChunkEvent):
-            yield {
-                "event": "text_delta",
-                "data": {"content": event.content},
-            }
+            yield _sse("text_delta", {"content": event.content})
 
         elif isinstance(event, NodeRunSucceededEvent):
             output_str = json.dumps(event.outputs, ensure_ascii=False)
-            yield {
-                "event": "node_completed",
-                "data": {
-                    "node_id": event.node_id,
-                    "node_name": event.node_name,
-                    "output": output_str[:500],
-                },
-            }
+            yield _sse("node_completed", {
+                "node_id": event.node_id,
+                "node_name": event.node_name,
+                "output": output_str[:500],
+            })
 
         elif isinstance(event, ToolInvokedEvent):
-            yield {
-                "event": "tool_invoked",
-                "data": {"tool_name": event.tool_name},
-            }
+            yield _sse("tool_invoked", {"tool_name": event.tool_name})
 
         elif isinstance(event, ToolResultEvent):
-            yield {
-                "event": "tool_result",
-                "data": {
-                    "tool_name": event.tool_name,
-                    "summary": event.summary[:200],
-                },
-            }
+            yield _sse("tool_result", {
+                "tool_name": event.tool_name,
+                "summary": event.summary[:200],
+            })
 
         elif isinstance(event, NodeRunFailedEvent):
-            yield {
-                "event": "node_failed",
-                "data": {
-                    "node_id": event.node_id,
-                    "node_name": event.node_name,
-                    "error": event.error,
-                },
-            }
+            yield _sse("node_failed", {
+                "node_id": event.node_id,
+                "node_name": event.node_name,
+                "error": event.error,
+            })
 
         elif isinstance(event, GraphRunSucceededEvent):
-            yield {
-                "event": "workflow_completed",
-                "data": {"outputs": event.outputs},
-            }
+            yield _sse("workflow_completed", {"outputs": event.outputs})
 
         elif isinstance(event, GraphRunFailedEvent):
-            yield {
-                "event": "error",
-                "data": {"message": event.error},
-            }
+            yield _sse("error", {"message": event.error})

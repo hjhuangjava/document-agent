@@ -110,6 +110,38 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete, readOnly =
                 <div className="text-sm px-2 py-1 bg-gray-100 rounded">
                   {nodeDef.tool_config.tool_name}
                 </div>
+
+                {nodeDef.tool_config.tool_name === "user_input" && (
+                  <>
+                    <label className="block text-xs text-gray-500 mt-2">用户输入内容</label>
+                    <textarea
+                      className="w-full border rounded px-2 py-1 text-sm h-32"
+                      value={
+                        nodeDef.tool_config.input_bindings[0]?.bind.type === "static"
+                          ? (nodeDef.tool_config.input_bindings[0].bind.value as string) ?? ""
+                          : ""
+                      }
+                      onChange={(e) => {
+                        if (readOnly) return;
+                        const newBindings = [...nodeDef.tool_config!.input_bindings];
+                        if (newBindings[0]) {
+                          newBindings[0] = {
+                            ...newBindings[0],
+                            bind: { ...newBindings[0].bind, value: e.target.value },
+                          };
+                        }
+                        update({
+                          tool_config: {
+                            ...nodeDef.tool_config!,
+                            input_bindings: newBindings,
+                          },
+                        });
+                      }}
+                      readOnly={readOnly}
+                      placeholder="请输入内容..."
+                    />
+                  </>
+                )}
               </>
             )}
 
