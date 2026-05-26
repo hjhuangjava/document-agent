@@ -177,9 +177,9 @@ def query_business_data(scene_id: str, min_score: int = 60) -> str:
 def check_consistency(draft_content: str, scene_id: str) -> dict:
     """核对方案原文与业务数据的一致性。
     draft_content 是方案文本，scene_id 用于查回原始数据做交叉比对。
-    返回 {status: pass/fail, violations: [...]}。"""
+    返回 {validation_result: {status: pass/fail, violations: [...]}}。"""
     # TODO: replace with real cross-check logic
-    return {"status": "pass", "violations": []}
+    return {"validation_result": {"status": "pass", "violations": []}}
 
 
 @tool

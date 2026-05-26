@@ -1,4 +1,12 @@
-"""SSE event translator – LangGraph astream_events v2 → business events."""
+"""DEPRECATED – SSE translator (LangGraph astream_events based).
+
+This module has been replaced by ``app.engine.workflow.sse.translate_stream``.
+The new translator consumes GraphEngine events directly, without coupling to LangGraph.
+
+Kept for reference only.  New code should use::
+
+    from app.engine.workflow.sse import translate_stream
+"""
 
 from app.engine.state import AgentState
 

@@ -10,8 +10,14 @@ from sse_starlette.sse import EventSourceResponse
 from app.db.engine import get_db
 from app.db.models import Workflow, WorkflowRun
 from app.schemas.workflow import WorkflowCreate, WorkflowOut, WorkflowRunRequest, WorkflowUpdate
-from app.engine.builder import build_workflow
-from app.engine.sse import translate_stream
+from app.engine.workflow import (
+    Graph,
+    GraphEngine,
+    GraphRuntimeState,
+    VariablePool,
+    node_factory,
+    translate_stream,
+)
 from app.engine.tools import get_vfs, release_vfs
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -96,25 +102,22 @@ async def run_workflow(wf_id: int, payload: WorkflowRunRequest, db: Session = De
           "edges": json.loads(wf.edges),
       }
 
-      graph = build_workflow(topology)
-      app = graph.compile()
-
       session_id = uuid.uuid4().hex
-      config = {"configurable": {"thread_id": session_id}}
 
-      # Build node display-name map for SSE translator
-      node_names = {n["id"]: n.get("name", n["id"]) for n in topology["nodes"]}
+      # --- Build runtime state with system variables ---
+      pool = VariablePool()
+      pool.set_system("business_context", payload.business_context)
+      pool.set_system("_vfs_session_id", session_id)
+      pool.set_system("_meta", {})
+      pool.set_system("_messages", [])
 
-      # Initial state
-      inputs = {
-          "business_context": payload.business_context,
-          "data_query_result": "",
-          "draft_content": "",
-          "consistency_report": {"status": "pass", "violations": []},
-          "vfs_artifacts": [],
-          "_vfs_session_id": session_id,
-          "_meta": {},
-      }
+      runtime_state = GraphRuntimeState(variable_pool=pool)
+
+      # --- Build graph from topology ---
+      graph = Graph.from_topology(topology, node_factory, runtime_state)
+
+      # --- Create engine ---
+      engine = GraphEngine(graph, runtime_state)
 
       # Record run in DB
       run_id = uuid.uuid4().hex
@@ -129,7 +132,7 @@ async def run_workflow(wf_id: int, payload: WorkflowRunRequest, db: Session = De
 
       async def event_generator():
           try:
-              async for evt in translate_stream(app, inputs, config, node_names):
+              async for evt in translate_stream(engine):
                   yield evt
               run_record.status = "completed"
               db.commit()

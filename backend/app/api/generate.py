@@ -10,9 +10,15 @@ from sse_starlette.sse import EventSourceResponse
 
 from app.db.engine import get_db
 from app.db.models import Workflow, WorkflowRun
-from app.engine.builder import build_workflow
-from app.engine.sse import translate_stream
 from app.engine.tools import get_vfs, release_vfs
+from app.engine.workflow import (
+    Graph,
+    GraphEngine,
+    GraphRuntimeState,
+    VariablePool,
+    node_factory,
+    translate_stream,
+)
 
 router = APIRouter(prefix="/generate", tags=["generate"])
 
@@ -33,25 +39,24 @@ async def generate(request: GenerateRequest, db: Session = Depends(get_db)):
         "edges": json.loads(wf.edges),
     }
 
-    graph = build_workflow(topology)
-
-    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-    checkpointer = AsyncSqliteSaver.from_conn_string("./data/checkpoints.db")
-    app = graph.compile(checkpointer=checkpointer)
-
     session_id = uuid.uuid4().hex
-    config = {"configurable": {"thread_id": session_id}}
-    node_names = {n["id"]: n.get("name", n["id"]) for n in topology["nodes"]}
 
-    inputs = {
-        "business_context": request.business_context,
-        "data_query_result": "",
-        "draft_content": "",
-        "consistency_report": {"status": "pass", "violations": []},
-        "vfs_artifacts": [],
-        "_vfs_session_id": session_id,
-    }
+    # --- Build runtime state with system variables ---
+    pool = VariablePool()
+    pool.set_system("business_context", request.business_context)
+    pool.set_system("_vfs_session_id", session_id)
+    pool.set_system("_meta", {})
+    pool.set_system("_messages", [])
 
+    runtime_state = GraphRuntimeState(variable_pool=pool)
+
+    # --- Build graph from topology ---
+    graph = Graph.from_topology(topology, node_factory, runtime_state)
+
+    # --- Create engine ---
+    engine = GraphEngine(graph, runtime_state)
+
+    # --- DB run record ---
     run_id = uuid.uuid4().hex
     run_record = WorkflowRun(
         id=run_id,
@@ -64,7 +69,7 @@ async def generate(request: GenerateRequest, db: Session = Depends(get_db)):
 
     async def event_generator():
         try:
-            async for evt in translate_stream(app, inputs, config, node_names):
+            async for evt in translate_stream(engine):
                 yield evt
             run_record.status = "completed"
             db.commit()

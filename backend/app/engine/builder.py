@@ -1,4 +1,12 @@
-"""Workflow builder – translate topology JSON → LangGraph StateGraph."""
+"""DEPRECATED – Workflow builder (LangGraph-based).
+
+This module has been replaced by ``app.engine.workflow``.  The new engine provides
+a custom Graph/RuntimeState/Engine implementation that does not depend on LangGraph.
+
+Kept for reference only.  New code should use::
+
+    from app.engine.workflow import Graph, GraphEngine, GraphRuntimeState, VariablePool
+"""
 
 from langgraph.graph import StateGraph, START, END
 
