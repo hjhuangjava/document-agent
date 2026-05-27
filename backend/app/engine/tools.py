@@ -229,7 +229,7 @@ def knowledge_search(query: str, top_k: int = 5) -> dict:
 def user_input(content: str) -> dict:
     """用户输入节点——透传用户在画布上输入的内容。
     content 为文本内容，直接透传返回供下游节点引用。"""
-    return {"content": content}
+    return {"01output": content}
 
 
 # ---------------------------------------------------------------------------

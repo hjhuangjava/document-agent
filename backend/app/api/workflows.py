@@ -101,6 +101,7 @@ async def run_workflow(wf_id: int, payload: WorkflowRunRequest, db: Session = De
           "nodes": json.loads(wf.nodes),
           "edges": json.loads(wf.edges),
       }
+      #print("Workflow topology loaded:", topology)
 
       session_id = uuid.uuid4().hex
 

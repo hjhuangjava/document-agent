@@ -1,0 +1,118 @@
+[
+    {
+        "id": "tool_user_input_1779853870415",
+        "execution_mode": "tool",
+        "name": "用户输入",
+        "description": "",
+        "category": "interactor",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": null,
+        "tool_config": {
+            "tool_name": "user_input",
+            "input_bindings": [
+                {
+                    "name": "content",
+                    "bind": {
+                        "type": "static",
+                        "value": "测试工作流03"
+                    },
+                    "required": true,
+                    "default": null
+                }
+            ],
+            "output_bindings": [
+                {
+                    "output_name": "01output",
+                    "state_key": "str"
+                }
+            ]
+        },
+        "output_bindings": [],
+        "requires_approval": false
+    },
+    {
+        "id": "tool_knowledge_search_1779853901599",
+        "execution_mode": "tool",
+        "name": "知识库查询",
+        "description": "",
+        "category": "knowledge",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": null,
+        "tool_config": {
+            "tool_name": "knowledge_search",
+            "input_bindings": [
+                {
+                    "name": "01output",
+                    "bind": {
+                        "type": "state",
+                        "state_key": "string"
+                    },
+                    "required": true,
+                    "default": null
+                }
+            ],
+            "output_bindings": [
+                {
+                    "output_name": "02output",
+                    "state_key": "string"
+                }
+            ]
+        },
+        "output_bindings": [],
+        "requires_approval": false
+    },
+    {
+        "id": "agent_1779853904743",
+        "execution_mode": "agent",
+        "name": "新 Agent",
+        "description": "",
+        "category": "general",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": {
+            "system_prompt": "",
+            "tool_names": [],
+            "llm_params": {
+                "temperature": 0.7
+            },
+            "max_iterations": 10
+        },
+        "tool_config": null,
+        "output_bindings": [
+            {
+                "output_name": "agentoutput",
+                "state_key": "staring"
+            }
+        ],
+        "requires_approval": false
+    },
+    {
+        "id": "tool_save_to_vfs_1779853908406",
+        "execution_mode": "tool",
+        "name": "VFS 保存",
+        "description": "",
+        "category": "executor",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": null,
+        "tool_config": {
+            "tool_name": "save_to_vfs",
+            "input_bindings": [
+                {
+                    "name": "agentoutput",
+                    "bind": {
+                        "type": "state",
+                        "state_key": "string"
+                    },
+                    "required": true,
+                    "default": null
+                }
+            ],
+            "output_bindings": []
+        },
+        "output_bindings": [],
+        "requires_approval": false
+    }
+]

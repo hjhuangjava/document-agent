@@ -20,6 +20,13 @@ class ToolNode(BaseNode):
         pool = self.runtime_state.variable_pool
         state = pool.to_state_dict()
 
+        # Resolve and print parameters for debugging
+        from app.engine.executors import _resolve_value
+        resolved_debug: dict = {}
+        for b in input_bindings:
+            resolved_debug[b["name"]] = _resolve_value(state, b)
+        print(f"[ToolNode] node={self.id} name={self.name} tool={tool_cfg['tool_name']} resolved_params={resolved_debug}")
+
         result = await execute_tool_node(
             state,
             tool_name=tool_cfg["tool_name"],

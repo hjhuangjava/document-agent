@@ -76,6 +76,7 @@ export function ComponentPalette({ onAddNode }: ComponentPaletteProps) {
                   execution_mode: "agent" as const,
                   name: "新 Agent",
                   category: "general",
+                  input_bindings: [],
                   agent_config: {
                     system_prompt: "",
                     tool_names: [],
@@ -90,6 +91,7 @@ export function ComponentPalette({ onAddNode }: ComponentPaletteProps) {
                 execution_mode: "agent",
                 name: "新 Agent",
                 category: "general",
+                input_bindings: [],
                 agent_config: {
                   system_prompt: "",
                   tool_names: [],

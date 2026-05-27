@@ -118,9 +118,13 @@ async def execute_tool_node(
         resolved[b["name"]] = _resolve_value(state, b)
 
     result = await tool_fn.ainvoke(resolved)
+    print('11111111111',result)
+   
 
     state_updates: dict = {}
     for ob in (output_bindings or []):
+        print("22",ob["output_name"])
+        ob["output_name"]=result
         value = result.get(ob["output_name"]) if isinstance(result, dict) else result
         _set_state_path(state_updates, ob["state_key"], value)
 

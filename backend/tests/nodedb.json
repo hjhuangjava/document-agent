@@ -1,0 +1,139 @@
+[
+    {
+        "id": "tool_knowledge_search_1779712554321",
+        "execution_mode": "tool",
+        "name": "知识库查询",
+        "description": "",
+        "category": "knowledge",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": null,
+        "tool_config": {
+            "tool_name": "knowledge_search",
+            "input_bindings": [],
+            "output_bindings": []
+        },
+        "output_bindings": [],
+        "requires_approval": false
+    },
+    {
+        "id": "tool_query_business_data_1779712564278",
+        "execution_mode": "tool",
+        "name": "资产数据查询",
+        "description": "",
+        "category": "data_source",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": null,
+        "tool_config": {
+            "tool_name": "query_business_data",
+            "input_bindings": [],
+            "output_bindings": []
+        },
+        "output_bindings": [],
+        "requires_approval": false
+    },
+    {
+        "id": "agent_1779712567735",
+        "execution_mode": "agent",
+        "name": "新 Agent",
+        "description": "",
+        "category": "general",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": {
+            "system_prompt": "",
+            "tool_names": [],
+            "llm_params": {
+                "temperature": 0.7
+            },
+            "max_iterations": 10
+        },
+        "tool_config": null,
+        "output_bindings": [],
+        "requires_approval": false
+    },
+    {
+        "id": "tool_save_to_vfs_1779715229705",
+        "execution_mode": "tool",
+        "name": "VFS 保存",
+        "description": "",
+        "category": "executor",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": null,
+        "tool_config": {
+            "tool_name": "save_to_vfs",
+            "input_bindings": [],
+            "output_bindings": []
+        },
+        "output_bindings": [],
+        "requires_approval": false
+    },
+    {
+        "id": "tool_user_input_1779789623305",
+        "execution_mode": "tool",
+        "name": "用户输入",
+        "description": "",
+        "category": "interactor",
+        "icon": "",
+        "version": "1.0.0",
+        "agent_config": null,
+        "tool_config": {
+            "tool_name": "user_input",
+            "input_bindings": [
+                {
+                    "name": "content",
+                    "bind": {
+                        "type": "static",
+                        "value": ""
+                    },
+                    "required": true,
+                    "default": null
+                }
+            ],
+            "output_bindings": []
+        },
+        "output_bindings": [],
+        "requires_approval": false
+    }
+]
+
+[
+    {
+        "id": "xy-edge__tool_knowledge_search_1779712554321-tool_query_business_data_1779712564278",
+        "source": "tool_knowledge_search_1779712554321",
+        "target": "tool_query_business_data_1779712564278",
+        "sourceHandle": null,
+        "targetHandle": null,
+        "condition": null,
+        "max_retries": 3
+    },
+    {
+        "id": "xy-edge__tool_query_business_data_1779712564278-agent_1779712567735",
+        "source": "tool_query_business_data_1779712564278",
+        "target": "agent_1779712567735",
+        "sourceHandle": null,
+        "targetHandle": null,
+        "condition": null,
+        "max_retries": 3
+    },
+    {
+        "id": "xy-edge__agent_1779712567735-tool_save_to_vfs_1779715229705",
+        "source": "agent_1779712567735",
+        "target": "tool_save_to_vfs_1779715229705",
+        "sourceHandle": null,
+        "targetHandle": null,
+        "condition": null,
+        "max_retries": 3
+    },
+    {
+        "id": "xy-edge__tool_user_input_1779789623305-tool_knowledge_search_1779712554321",
+        "source": "tool_user_input_1779789623305",
+        "target": "tool_knowledge_search_1779712554321",
+        "sourceHandle": null,
+        "targetHandle": null,
+        "condition": null,
+        "max_retries": 3
+    }
+]

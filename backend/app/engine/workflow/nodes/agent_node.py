@@ -15,13 +15,29 @@ class AgentNode(BaseNode):
     async def _run_async(self) -> AsyncGenerator[GraphEngineEvent, None]:
         agent_cfg = self.node_data["agent_config"]
         output_bindings = self.node_data.get("output_bindings", [])
+        input_bindings = self.node_data.get("input_bindings", [])
 
         pool = self.runtime_state.variable_pool
         state = pool.to_state_dict()
 
+        # Resolve input bindings and inject into system prompt
+        from app.engine.executors import _resolve_value
+        resolved_inputs: dict = {}
+        for b in input_bindings:
+            resolved_inputs[b["name"]] = _resolve_value(state, b)
+
+        print(f"[AgentNode] node={self.id} name={self.name} tools={agent_cfg['tool_names']} resolved_inputs={resolved_inputs}")
+
+        # Append resolved input context to system prompt
+        system_prompt = agent_cfg["system_prompt"]
+        if resolved_inputs:
+            context_lines = [f"- {k}: {v}" for k, v in resolved_inputs.items() if v is not None]
+            if context_lines:
+                system_prompt += "\n\n以下是上游节点提供的输入数据：\n" + "\n".join(context_lines)
+
         result = await execute_agent_node(
             state,
-            system_prompt=agent_cfg["system_prompt"],
+            system_prompt=system_prompt,
             tool_names=agent_cfg["tool_names"],
             vfs_session_id=pool.get_system("_vfs_session_id", ""),
             llm_params=agent_cfg.get("llm_params"),

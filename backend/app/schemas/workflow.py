@@ -47,6 +47,7 @@ class NodeDef(BaseModel):
     version: str = "1.0.0"
     agent_config: AgentConfig | None = None
     tool_config: ToolConfig | None = None
+    input_bindings: list[ToolConfigInputBinding] = []
     output_bindings: list[OutputBinding] = []
     requires_approval: bool = False
 

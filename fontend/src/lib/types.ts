@@ -74,6 +74,7 @@ export interface NodeDef {
   version?: string;
   agent_config?: AgentConfig;
   tool_config?: ToolConfig;
+  input_bindings?: ToolConfigInputBinding[];
   output_bindings?: OutputBinding[];
   requires_approval?: boolean;
 }

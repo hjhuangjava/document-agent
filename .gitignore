@@ -6,3 +6,4 @@ backend/app/engine/__pycache__/sse.cpython-312.pyc
 backend/app/engine/__pycache__/tools.cpython-312.pyc
 backend/app/api/__pycache__/generate.cpython-312.pyc
 backend/app/api/__pycache__/workflows.cpython-312.pyc
+backend/tests/node.json
