@@ -23,11 +23,12 @@
             ],
             "output_bindings": [
                 {
-                    "output_name": "01output",
-                    "state_key": "user_input_result"
+                    "output_name": "output01",
+                    "state_key": "string"
                 }
             ]
         },
+        "input_bindings": [],
         "output_bindings": [],
         "requires_approval": false
     },
@@ -47,7 +48,7 @@
                     "name": "output01",
                     "bind": {
                         "type": "state",
-                        "state_key": "user_input_result"
+                        "state_key": "string"
                     },
                     "required": true,
                     "default": null
@@ -55,11 +56,12 @@
             ],
             "output_bindings": [
                 {
-                    "output_name": "02output",
-                    "state_key": "search_result"
+                    "output_name": "output02",
+                    "state_key": "string"
                 }
             ]
         },
+        "input_bindings": [],
         "output_bindings": [],
         "requires_approval": false
     },
@@ -80,10 +82,21 @@
             "max_iterations": 10
         },
         "tool_config": null,
+        "input_bindings": [
+            {
+                "name": "output02",
+                "bind": {
+                    "type": "state",
+                    "state_key": "string"
+                },
+                "required": true,
+                "default": null
+            }
+        ],
         "output_bindings": [
             {
                 "output_name": "agentoutput",
-                "state_key": "agent_result"
+                "state_key": "string"
             }
         ],
         "requires_approval": false
@@ -104,7 +117,7 @@
                     "name": "agentoutput",
                     "bind": {
                         "type": "state",
-                        "state_key": "agent_result"
+                        "state_key": "string"
                     },
                     "required": true,
                     "default": null
@@ -112,6 +125,7 @@
             ],
             "output_bindings": []
         },
+        "input_bindings": [],
         "output_bindings": [],
         "requires_approval": false
     }

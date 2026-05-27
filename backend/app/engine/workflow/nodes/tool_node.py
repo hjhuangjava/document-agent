@@ -33,6 +33,8 @@ class ToolNode(BaseNode):
             input_bindings=input_bindings,
             output_bindings=output_bindings,
         )
+        print(f"[ToolNode] node={self.id} result={result}")
+        print(f"[ToolNode] node={self.id} output_bindings={output_bindings}")
 
         yield NodeRunSucceededEvent(
             node_id=self.id,

@@ -217,19 +217,20 @@ def save_to_vfs(filename: str, content: str, vfs_session_id: str) -> str:
 
 
 @tool
-def knowledge_search(query: str, top_k: int = 5) -> dict:
+def knowledge_search(query: str = "", top_k: int = 5) -> dict:
     """检索知识库文档，根据关键词返回相关文档内容及相似度评分。
     query 为检索关键词，top_k 为返回结果数量上限。
     返回 {results: [{id, title, content, score, source, category}], total: int}。"""
     results = _simple_search(query, MOCK_DOCS, top_k)
-    return {"results": results, "total": len(results)}
+    return {"output02": results, "total": len(results)}
 
 
 @tool
 def user_input(content: str) -> dict:
     """用户输入节点——透传用户在画布上输入的内容。
     content 为文本内容，直接透传返回供下游节点引用。"""
-    return {"01output": content}
+    #print(f"用户输入: {content}")
+    return {"output01": content+"tool01"}
 
 
 # ---------------------------------------------------------------------------

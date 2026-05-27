@@ -71,9 +71,16 @@ async def execute_agent_node(
     # Inject vfs_session_id into tool calls by adding it to system_prompt hint
     augmented_prompt = f"{system_prompt}\n\n当前会话 VFS ID: {vfs_session_id}，调用需要 vfs_session_id 参数的工具时请传入此值。"
 
-    response = await model_with_tools.ainvoke(
-        [("system", augmented_prompt)] + state["messages"]
+    prompt_messages = [("system", augmented_prompt)] + state["messages"]
+    # Ensure at least one user message exists (API requirement)
+    has_user = any(
+        getattr(m, "type", None) == "human" or getattr(m, "role", None) == "user"
+        for m in state["messages"]
     )
+    if not has_user:
+        prompt_messages.append(("user", "请执行任务。"))
+
+    response = await model_with_tools.ainvoke(prompt_messages)
     messages = [response]
 
     iterations = 0
@@ -82,7 +89,7 @@ async def execute_agent_node(
         tool_result = await tool_node.ainvoke({"messages": messages})
         messages.append(tool_result["messages"][-1])
         response = await model_with_tools.ainvoke(
-            [("system", augmented_prompt)] + state["messages"] + messages
+            prompt_messages + messages
         )
         messages.append(response)
         iterations += 1
@@ -115,7 +122,11 @@ async def execute_tool_node(
 
     resolved: dict = {}
     for b in input_bindings:
-        resolved[b["name"]] = _resolve_value(state, b)
+        val = _resolve_value(state, b)
+        if val is None:
+            val = b.get("default")
+        resolved[b["name"]] = val
+        print('这个参数要传给tool',val)
 
     result = await tool_fn.ainvoke(resolved)
     print('11111111111',result)
@@ -123,8 +134,6 @@ async def execute_tool_node(
 
     state_updates: dict = {}
     for ob in (output_bindings or []):
-        print("22",ob["output_name"])
-        ob["output_name"]=result
         value = result.get(ob["output_name"]) if isinstance(result, dict) else result
         _set_state_path(state_updates, ob["state_key"], value)
 
