@@ -18,7 +18,7 @@ from app.engine.workflow import (
     node_factory,
     translate_stream,
 )
-from app.engine.tools import get_vfs, release_vfs
+from app.engine.tools import release_vfs
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
@@ -93,57 +93,50 @@ def update_workflow(wf_id: int, payload: WorkflowUpdate, db: Session = Depends(g
 
 @router.post("/{wf_id}/run")
 async def run_workflow(wf_id: int, payload: WorkflowRunRequest, db: Session = Depends(get_db)):
-      wf = db.query(Workflow).filter(Workflow.id == wf_id).first()
-      if not wf:
-          raise HTTPException(status_code=404, detail="Workflow not found")
+    wf = db.query(Workflow).filter(Workflow.id == wf_id).first()
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
-      topology = {
-          "nodes": json.loads(wf.nodes),
-          "edges": json.loads(wf.edges),
-      }
-      #print("Workflow topology loaded:", topology)
+    topology = {
+        "nodes": json.loads(wf.nodes),
+        "edges": json.loads(wf.edges),
+    }
 
-      session_id = uuid.uuid4().hex
+    session_id = uuid.uuid4().hex
 
-      # --- Build runtime state with system variables ---
-      pool = VariablePool()
-      pool.set_system("business_context", payload.business_context)
-      pool.set_system("_vfs_session_id", session_id)
-      pool.set_system("_meta", {})
-      pool.set_system("_messages", [])
+    pool = VariablePool()
+    pool.set_system("business_context", payload.business_context)
+    pool.set_system("_vfs_session_id", session_id)
+    pool.set_system("_meta", {})
+    pool.set_system("_messages", [])
 
-      runtime_state = GraphRuntimeState(variable_pool=pool)
+    runtime_state = GraphRuntimeState(variable_pool=pool)
+    graph = Graph.from_topology(topology, node_factory, runtime_state)
+    engine = GraphEngine(graph, runtime_state)
 
-      # --- Build graph from topology ---
-      graph = Graph.from_topology(topology, node_factory, runtime_state)
+    run_id = uuid.uuid4().hex
+    run_record = WorkflowRun(
+        id=run_id,
+        workflow_id=wf_id,
+        status="running",
+        business_context=json.dumps(payload.business_context, ensure_ascii=False),
+    )
+    db.add(run_record)
+    db.commit()
 
-      # --- Create engine ---
-      engine = GraphEngine(graph, runtime_state)
+    async def event_generator():
+        try:
+            async for evt in translate_stream(engine):
+                yield evt
+            run_record.status = "completed"
+            db.commit()
+        except Exception as e:
+            run_record.status = "failed"
+            run_record.error_message = str(e)
+            db.commit()
+            yield {"event": "error", "data": {"message": str(e)}}
+        finally:
+            release_vfs(session_id)
 
-      # Record run in DB
-      run_id = uuid.uuid4().hex
-      run_record = WorkflowRun(
-          id=run_id,
-          workflow_id=wf_id,
-          status="running",
-          business_context=json.dumps(payload.business_context, ensure_ascii=False),
-      )
-      db.add(run_record)
-      db.commit()
-
-      async def event_generator():
-          try:
-              async for evt in translate_stream(engine):
-                  yield evt
-              run_record.status = "completed"
-              db.commit()
-          except Exception as e:
-              run_record.status = "failed"
-              run_record.error_message = str(e)
-              db.commit()
-              yield {"event": "error", "data": {"message": str(e)}}
-          finally:
-              release_vfs(session_id)
-
-      return EventSourceResponse(event_generator())
+    return EventSourceResponse(event_generator())
 

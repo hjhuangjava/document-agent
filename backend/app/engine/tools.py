@@ -138,6 +138,64 @@ def _simple_search(query: str, docs: list[dict], top_k: int) -> list[dict]:
     scored.sort(key=lambda d: d["score"], reverse=True)
     return scored[:top_k]
 
+
+def _get_state_path(state: dict, path: str):
+    keys = path.split(".")
+    cur = state
+    for k in keys:
+        if isinstance(cur, dict) and k in cur:
+            cur = cur[k]
+        else:
+            return None
+    return cur
+
+
+def _set_state_path(updates: dict, path: str, value):
+    keys = path.split(".")
+    cur = updates
+    for k in keys[:-1]:
+        cur = cur.setdefault(k, {})
+    cur[keys[-1]] = value
+
+
+def _resolve_value(state: dict, binding: dict):
+    bind = binding.get("bind", {})
+    if bind.get("type") == "state":
+        state_key = bind.get("state_key") or binding["name"]
+        return _get_state_path(state, state_key)
+    return bind.get("value", binding.get("default"))
+
+
+def _resolve_inputs(state: dict, input_bindings: list[dict], tool_name: str) -> dict:
+    resolved: dict = {}
+    for b in input_bindings:
+        val = _resolve_value(state, b)
+        if val is None:
+            val = b.get("default")
+        resolved[b["name"]] = val
+    return resolved
+
+
+def _bind_outputs(result, output_bindings: list[dict] | None, default_output_name: str = "result") -> dict:
+    state_updates: dict = {}
+    output_bindings = output_bindings or []
+    if not output_bindings:
+        if isinstance(result, dict):
+            return result
+        return {default_output_name: result}
+    if len(output_bindings) == 1:
+        ob = output_bindings[0]
+        output_name = ob["output_name"]
+        state_key = ob.get("state_key") or output_name
+        state_updates[state_key] = result
+    else:
+        for ob in output_bindings:
+            output_name = ob["output_name"]
+            state_key = ob.get("state_key") or output_name
+            value = result.get(output_name) if isinstance(result, dict) else result
+            _set_state_path(state_updates, state_key, value)
+    return state_updates
+
 # ---------------------------------------------------------------------------
 # Session-level VFS cache (keyed by session_id)
 # ---------------------------------------------------------------------------
@@ -161,31 +219,47 @@ def release_vfs(session_id: str):
 # ---------------------------------------------------------------------------
 
 @tool
-def query_business_data(scene_id: str, min_score: int = 60) -> str:
-    """查询资产特征库，返回设备特征、风险等级及联动逻辑。
-    结果格式化为 Markdown 表格。scene_id 为场景标识，min_score 为特征分值过滤下限。"""
-    # TODO: replace with real DB / Neo4j query
-    return (
+async def query_business_data(
+    state: dict,
+    input_bindings: list[dict],
+    output_bindings: list[dict] | None = None,
+) -> dict:
+    """查询资产特征库，返回设备特征、风险等级及联动逻辑。"""
+    resolved = _resolve_inputs(state, input_bindings, "query_business_data")
+    output02 = resolved.get("output02", [])
+    min_score = resolved.get("min_score", 60) or 60
+    result = (
         "| 设备名称 | 特征分值 | 风险等级 |\n"
         "|----------|----------|----------|\n"
         f"| 示例设备A | 85 | 高 |\n"
         f"| 示例设备B | {min_score} | 中 |\n"
     )
+    return _bind_outputs(result, output_bindings)
 
 
 @tool
-def check_consistency(draft_content: str, scene_id: str) -> dict:
-    """核对方案原文与业务数据的一致性。
-    draft_content 是方案文本，scene_id 用于查回原始数据做交叉比对。
-    返回 {validation_result: {status: pass/fail, violations: [...]}}。"""
-    # TODO: replace with real cross-check logic
-    return {"validation_result": {"status": "pass", "violations": []}}
+async def check_consistency(
+    state: dict,
+    input_bindings: list[dict],
+    output_bindings: list[dict] | None = None,
+) -> dict:
+    """核对方案原文与业务数据的一致性。"""
+    _resolve_inputs(state, input_bindings, "check_consistency")
+    result = {"validation_result": {"status": "pass", "violations": []}}
+    return _bind_outputs(result, output_bindings)
 
 
 @tool
-def generate_chart(chart_type: str, data_points: list[dict], vfs_session_id: str) -> str:
-    """绘制图表并存入 VFS。chart_type 可选 'bar'/'pie'，
-    data_points 格式为 [{label, value}, ...]。返回 VFS 文件路径。"""
+async def generate_chart(
+    state: dict,
+    input_bindings: list[dict],
+    output_bindings: list[dict] | None = None,
+) -> dict:
+    """绘制图表并存入 VFS。"""
+    resolved = _resolve_inputs(state, input_bindings, "generate_chart")
+    chart_type = resolved.get("chart_type")
+    data_points = resolved.get("data_points", [])
+    vfs_session_id = resolved.get("vfs_session_id") or state.get("_vfs_session_id", "")
     vfs = get_vfs(vfs_session_id)
 
     plt.figure(figsize=(6, 4))
@@ -197,7 +271,7 @@ def generate_chart(chart_type: str, data_points: list[dict], vfs_session_id: str
     elif chart_type == "pie":
         plt.pie(y, labels=x, autopct="%1.1f%%")
     else:
-        return f"不支持的图表类型: {chart_type}"
+        return _bind_outputs(f"不支持的图表类型: {chart_type}", output_bindings)
 
     fid = uuid.uuid4().hex[:8]
     filename = f"charts/chart_{fid}.png"
@@ -206,31 +280,49 @@ def generate_chart(chart_type: str, data_points: list[dict], vfs_session_id: str
     plt.savefig(path, format="png", dpi=150)
     plt.close()
 
-    return str(path)
+    return _bind_outputs(str(path), output_bindings)
 
 
 @tool
-def save_to_vfs(filename: str, content: str, vfs_session_id: str) -> str:
-    """将内容保存到 VFS 作为最终产物（完整文档、图表等）。"""
+async def save_to_vfs(
+    state: dict,
+    input_bindings: list[dict],
+    output_bindings: list[dict] | None = None,
+) -> dict:
+    """将内容保存到 VFS 作为最终产物。"""
+    resolved = _resolve_inputs(state, input_bindings, "save_to_vfs")
+    filename = resolved.get("filename")
+    content = resolved.get("content", "")
+    vfs_session_id = resolved.get("vfs_session_id") or state.get("_vfs_session_id", "")
     vfs = get_vfs(vfs_session_id)
-    return vfs.write(filename, content)
+    result = vfs.write(filename, content)
+    return _bind_outputs(result, output_bindings)
 
 
 @tool
-def knowledge_search(query: str = "", top_k: int = 5) -> dict:
-    """检索知识库文档，根据关键词返回相关文档内容及相似度评分。
-    query 为检索关键词，top_k 为返回结果数量上限。
-    返回 {results: [{id, title, content, score, source, category}], total: int}。"""
-    results = _simple_search(query, MOCK_DOCS, top_k)
-    return {"output02": results, "total": len(results)}
+async def knowledge_search(
+    state: dict,
+    input_bindings: list[dict],
+    output_bindings: list[dict] | None = None,
+) -> dict:
+    """检索知识库文档，根据关键词返回相关文档内容及相似度评分。"""
+    resolved = _resolve_inputs(state, input_bindings, "knowledge_search")
+    query = resolved.get("query", "") or ""
+    top_k = resolved.get("top_k", 5) or 5
+    results = _simple_search(str(query), MOCK_DOCS, int(top_k))
+    return _bind_outputs(results, output_bindings)
 
 
 @tool
-def user_input(content: str) -> dict:
-    """用户输入节点——透传用户在画布上输入的内容。
-    content 为文本内容，直接透传返回供下游节点引用。"""
-    #print(f"用户输入: {content}")
-    return {"output01": content+"tool01"}
+async def user_input(
+    state: dict,
+    input_bindings: list[dict],
+    output_bindings: list[dict] | None = None,
+) -> dict:
+    """用户输入节点——透传用户在画布上输入的内容。"""
+    resolved = _resolve_inputs(state, input_bindings, "user_input")
+    content = resolved.get("content", "")
+    return _bind_outputs({"output01": content + "tool01"}, output_bindings)
 
 
 # ---------------------------------------------------------------------------

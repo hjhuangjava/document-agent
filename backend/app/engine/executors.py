@@ -34,7 +34,8 @@ def _set_state_path(updates: dict, path: str, value):
 def _resolve_value(state: AgentState, binding: dict):
     bind = binding.get("bind", {})
     if bind.get("type") == "state":
-        return _get_state_path(state, bind["state_key"])
+        state_key = bind.get("state_key") or binding["name"]
+        return _get_state_path(state, state_key)
     return bind.get("value", binding.get("default"))
 
 
@@ -114,30 +115,20 @@ async def execute_tool_node(
     input_bindings: list[dict],
     output_bindings: list[dict] | None = None,
 ) -> dict:
-    """Deterministic node: call a single tool with resolved inputs, write outputs to state."""
+    """Deterministic node: pass runtime context to concrete tool method."""
 
     tool_fn = TOOL_REGISTRY.get(tool_name)
     if not tool_fn:
         raise ValueError(f"Unregistered tool: {tool_name}")
 
-    resolved: dict = {}
-    for b in input_bindings:
-        val = _resolve_value(state, b)
-        if val is None:
-            val = b.get("default")
-        resolved[b["name"]] = val
-        print('这个参数要传给tool',val)
-
-    result = await tool_fn.ainvoke(resolved)
-    print('11111111111',result)
-   
-
-    state_updates: dict = {}
-    for ob in (output_bindings or []):
-        value = result.get(ob["output_name"]) if isinstance(result, dict) else result
-        _set_state_path(state_updates, ob["state_key"], value)
-
-    return state_updates
+    result = await tool_fn.ainvoke(
+        {
+            "state": state,
+            "input_bindings": input_bindings,
+            "output_bindings": output_bindings or [],
+        }
+    )
+    return result
 
 
 # ---------------------------------------------------------------------------

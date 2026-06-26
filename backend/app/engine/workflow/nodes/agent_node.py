@@ -26,8 +26,6 @@ class AgentNode(BaseNode):
         for b in input_bindings:
             resolved_inputs[b["name"]] = _resolve_value(state, b)
 
-        print(f"[AgentNode] node={self.id} name={self.name} tools={agent_cfg['tool_names']} resolved_inputs={resolved_inputs}")
-
         # Append resolved input context to system prompt
         system_prompt = agent_cfg["system_prompt"]
         if resolved_inputs:
