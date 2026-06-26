@@ -7,7 +7,6 @@ from app.engine.tools import TOOL_REGISTRY, get_vfs, release_vfs
 # ---------------------------------------------------------------------------
 # Legacy (deprecated — retained for backward-compat reference)
 # ---------------------------------------------------------------------------
-from app.engine.builder import build_workflow  # noqa: F401
 from app.engine.sse import translate_stream  # noqa: F401
 
 # ---------------------------------------------------------------------------

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bot, Wrench, Search, Database, Shield, Pen, BookOpen } from "lucide-react";
+import { Bot, Wrench, Search, Database, Shield, Pen, BookOpen, Play, Square } from "lucide-react";
 import { listTools } from "@/lib/api";
 import type { Tool as APITool, NodeDef } from "@/lib/types";
+import { createEndNodeDef, createStartNodeDef } from "@/lib/flow-control";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   data_source: <Database className="h-4 w-4" />,
@@ -23,6 +24,37 @@ const LABEL_MAP: Record<string, string> = {
 
 interface ComponentPaletteProps {
   onAddNode: (def: NodeDef) => void;
+}
+
+const FLOW_CONTROL_NODES = [
+  { def: createStartNodeDef(), icon: <Play className="h-4 w-4 text-green-600" />, className: "hover:bg-green-50 border-green-200" },
+  { def: createEndNodeDef(), icon: <Square className="h-4 w-4 text-rose-600" />, className: "hover:bg-rose-50 border-rose-200" },
+] as const;
+
+function FlowControlButton({
+  def,
+  icon,
+  className,
+  onAddNode,
+}: {
+  def: NodeDef;
+  icon: React.ReactNode;
+  className: string;
+  onAddNode: (def: NodeDef) => void;
+}) {
+  return (
+    <button
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("application/json", JSON.stringify(def));
+      }}
+      onClick={() => onAddNode(def)}
+      className={`w-full text-left px-2 py-1.5 text-sm rounded border flex items-center gap-2 mb-1 ${className}`}
+    >
+      {icon}
+      {def.name}
+    </button>
+  );
 }
 
 export function ComponentPalette({ onAddNode }: ComponentPaletteProps) {
@@ -113,6 +145,16 @@ export function ComponentPalette({ onAddNode }: ComponentPaletteProps) {
               {ICON_MAP[cat] || <Wrench className="h-3 w-3" />}
               {LABEL_MAP[cat] || cat}
             </div>
+            {cat === "interactor" &&
+              FLOW_CONTROL_NODES.map((item) => (
+                <FlowControlButton
+                  key={item.def.id}
+                  def={item.def}
+                  icon={item.icon}
+                  className={item.className}
+                  onAddNode={onAddNode}
+                />
+              ))}
             {items.map((t) => (
               <button
                 key={t.name}

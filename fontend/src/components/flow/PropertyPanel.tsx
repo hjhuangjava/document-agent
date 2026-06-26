@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { listTools } from "@/lib/api";
 import type { NodeDef, Tool, ToolConfigInputBinding, ToolConfigOutputBinding, OutputBinding } from "@/lib/types";
+import { isFlowTerminalNode } from "@/lib/flow-control";
 
 interface PropertyPanelProps {
   nodeDef: NodeDef;
@@ -15,6 +16,7 @@ interface PropertyPanelProps {
 
 export function PropertyPanel({ nodeDef, onChange, onClose, onDelete, readOnly = false }: PropertyPanelProps) {
   const isAgent = nodeDef.execution_mode === "agent";
+  const isTerminal = isFlowTerminalNode(nodeDef);
   const [toolsMeta, setToolsMeta] = useState<Tool[]>([]);
 
   useEffect(() => {
@@ -144,11 +146,20 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete, readOnly =
         {/* 类型 */}
         <label className="block text-xs text-gray-500">类型</label>
         <div className="text-sm px-2 py-1 bg-gray-100 rounded">
-          {isAgent ? "Agent (LLM 驱动)" : "Tool (确定性)"}
+          {isTerminal ? "流程控制" : isAgent ? "Agent (LLM 驱动)" : "Tool (确定性)"}
         </div>
 
+        {isTerminal && (
+          <p className="text-xs text-gray-500 leading-relaxed">
+            {nodeDef.description ||
+              (nodeDef.id === "__start__"
+                ? "连接下游节点，标识工作流从何处开始执行。"
+                : "连接上游节点，标识工作流在何处结束。")}
+          </p>
+        )}
+
         {/* Agent 专属 */}
-        {isAgent && nodeDef.agent_config && (
+        {!isTerminal && isAgent && nodeDef.agent_config && (
           <>
             <label className="block text-xs text-gray-500">System Prompt</label>
             <textarea
@@ -185,7 +196,7 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete, readOnly =
         )}
 
         {/* Tool 专属 */}
-        {!isAgent && nodeDef.tool_config && (
+        {!isTerminal && !isAgent && nodeDef.tool_config && (
           <>
             <label className="block text-xs text-gray-500">工具名称</label>
             <div className="text-sm px-2 py-1 bg-gray-100 rounded">
@@ -227,15 +238,21 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete, readOnly =
         )}
 
         {/* 人工确认 */}
-        <label className="block text-xs text-gray-500">需要人工确认</label>
-        <input
-          type="checkbox"
-          checked={nodeDef.requires_approval ?? false}
-          onChange={(e) => update({ requires_approval: e.target.checked })}
-          disabled={readOnly}
-        />
+        {!isTerminal && (
+          <>
+            <label className="block text-xs text-gray-500">需要人工确认</label>
+            <input
+              type="checkbox"
+              checked={nodeDef.requires_approval ?? false}
+              onChange={(e) => update({ requires_approval: e.target.checked })}
+              disabled={readOnly}
+            />
+          </>
+        )}
 
-        {/* ====== 输入参数 ====== */}
+        {/* ====== 输入参数 / 输出参数 ====== */}
+        {!isTerminal && (
+        <>
         <div className="border-t pt-3 mt-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-700">输入参数</span>
@@ -358,6 +375,8 @@ export function PropertyPanel({ nodeDef, onChange, onClose, onDelete, readOnly =
             </div>
           ))}
         </div>
+        </>
+        )}
       </div>
 
       {/* 删除按钮 */}

@@ -93,6 +93,7 @@ def update_workflow(wf_id: int, payload: WorkflowUpdate, db: Session = Depends(g
 
 @router.post("/{wf_id}/run")
 async def run_workflow(wf_id: int, payload: WorkflowRunRequest, db: Session = Depends(get_db)):
+    print("run_workflow--------------------------", wf_id, payload, flush=True)
     wf = db.query(Workflow).filter(Workflow.id == wf_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -111,6 +112,7 @@ async def run_workflow(wf_id: int, payload: WorkflowRunRequest, db: Session = De
     pool.set_system("_messages", [])
 
     runtime_state = GraphRuntimeState(variable_pool=pool)
+    print("topology--------------------------", topology)
     graph = Graph.from_topology(topology, node_factory, runtime_state)
     engine = GraphEngine(graph, runtime_state)
 

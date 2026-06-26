@@ -1,3 +1,10 @@
+安装依赖
+  cd D:\cursorworkspace\document-agent\backend
+  pip install -r requirements.txt
+
+开发/测试依赖（可选）
+  pip install -r requirements-dev.txt
+
 启动
- uvicorn app.main:app --host 0.0.0.0 --port 8000
- cd /home/hadoop4/vsworkspace/document-agent/backend && /home/hadoop4/anaconda3/envs/deepagent312/bin/python app/main.py
+  cd D:\cursorworkspace\document-agent\backend
+  python -m app.main

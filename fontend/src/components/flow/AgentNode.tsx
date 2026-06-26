@@ -4,6 +4,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { NodeDef } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Bot, Wrench } from "lucide-react";
+import { EndNode, StartNode } from "./TerminalNode";
 
 interface CustomNodeData extends Record<string, unknown> {
   nodeDef: NodeDef;
@@ -60,4 +61,6 @@ export function AgentNode({ data, selected }: NodeProps) {
 
 export const nodeTypes = {
   custom: AgentNode,
+  start: StartNode,
+  end: EndNode,
 };
