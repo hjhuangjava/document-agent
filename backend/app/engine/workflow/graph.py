@@ -28,7 +28,8 @@ class Graph:
     edges: dict[str, Edge]            # edge_id → Edge
     in_edges: dict[str, list[str]]    # node_id → incoming edge_ids
     out_edges: dict[str, list[str]]   # node_id → outgoing edge_ids
-    root_node_id: str
+    root_node_id: str                 # first root (used for back-edge DFS)
+    root_node_ids: list[str]          # all entry nodes (every __start__ target)
     node_names: dict[str, str]        # node_id → display name
     back_edges: set[str]              # edge_ids that close cycles (retry loops)
 
@@ -72,8 +73,11 @@ class Graph:
                     dfs(head)
             on_stack.discard(nid)
 
-        if getattr(self, "root_node_id", None):
-            dfs(self.root_node_id)
+        for root in getattr(self, "root_node_ids", None) or (
+            [self.root_node_id] if getattr(self, "root_node_id", None) else []
+        ):
+            if root not in visited:
+                dfs(root)
 
     @classmethod
     def from_topology(
@@ -128,15 +132,15 @@ class Graph:
                 g.in_edges.setdefault(head, []).append(eid)
 
         # --- Find root node(s) ---
-        # Prefer the target of an explicit __start__ edge; otherwise fall back
-        # to nodes with no incoming edges.
-        root_id = None
+        # Collect every explicit __start__ edge target; otherwise fall back
+        # to all nodes with no incoming edges. There can be MORE THAN ONE root
+        # (parallel branches fanning out from __start__).
+        roots: list[str] = []
         for edge in g.edges.values():
-            if edge.tail == "__start__":
-                root_id = edge.head
-                break
+            if edge.tail == "__start__" and edge.head in g.nodes and edge.head not in roots:
+                roots.append(edge.head)
 
-        if root_id is None:
+        if not roots:
             # Find nodes whose incoming-edge list is truly empty
             roots = [
                 nid for nid in g.nodes
@@ -144,8 +148,9 @@ class Graph:
             ]
             if not roots:
                 raise ValueError("No root node found – check topology edges")
-            root_id = roots[0]  # first root node
-        g.root_node_id = root_id
+
+        g.root_node_ids = roots
+        g.root_node_id = roots[0]  # first root (used for back-edge DFS)
 
         # --- Build node name map ---
         g.node_names = {

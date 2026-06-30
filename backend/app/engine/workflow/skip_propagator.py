@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
+from app.engine.workflow.debug_log import wflog
 from app.engine.workflow.enums import NodeState
 
 if TYPE_CHECKING:
@@ -33,11 +34,15 @@ class SkipPropagator:
         if target_id == "__end__":
             return
 
+        edge_src = edge.tail
+        wflog(f"  edge SKIPPED: {edge_src} -> {target_id}")
+
         in_edges = self._graph.forward_in_edges(target_id)
 
         # If all incoming (forward) are SKIPPED → node is unreachable
         if self._sm.is_all_incoming_skipped(target_id, in_edges):
             self._sm.mark_node_skipped(target_id)
+            wflog(f"  node SKIPPED (all incoming skipped): {target_id}")
 
             # Recursively skip all outgoing edges
             for out_eid in self._graph.out_edges.get(target_id, []):
@@ -49,4 +54,5 @@ class SkipPropagator:
             self._sm.get_node_state(target_id) != NodeState.TAKEN
             and self._sm.is_node_ready(target_id, in_edges)
         ):
+            wflog(f"    ✓ READY (after skip) → enqueue {target_id}")
             self._enqueue(target_id)

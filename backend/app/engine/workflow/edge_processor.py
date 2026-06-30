@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
+from app.engine.workflow.debug_log import wflog
 from app.engine.workflow.enums import NodeState
 
 if TYPE_CHECKING:
@@ -27,6 +28,16 @@ class EdgeProcessor:
         self._enqueue = enqueue_callback
         self._skip = skip_callback
 
+    def _edge_states(self, edge_ids: list[str]) -> str:
+        """Readable summary of edge states for an AND-join, e.g.
+        '[A->C=taken, B->C=unknown]'."""
+        parts = []
+        for eid in edge_ids:
+            e = self._graph.edges[eid]
+            state = self._sm.get_edge_state(eid)
+            parts.append(f"{e.tail}->{e.head}={state.value}")
+        return "[" + ", ".join(parts) + "]"
+
     def process_node_success(self, node_id: str) -> None:
         """Process outgoing edges of *node_id*.
 
@@ -46,13 +57,18 @@ class EdgeProcessor:
             edge = self._graph.edges[eid]
             if edge.head == "__end__":
                 self._sm.mark_edge_taken(eid)
+                wflog(f"  edge TAKEN: {node_id} -> __end__")
                 continue
 
             self._sm.mark_edge_taken(eid)
             target = edge.head
+            wflog(f"  edge TAKEN: {node_id} -> {target}")
             in_ids = self._graph.forward_in_edges(target)
             if self._sm.is_node_ready(target, in_ids):
+                wflog(f"    ✓ READY → enqueue {target} | incoming {self._edge_states(in_ids)}")
                 self._enqueue(target)
+            else:
+                wflog(f"    … WAIT {target} (join not satisfied) | incoming {self._edge_states(in_ids)}")
 
         # --- Conditional (branch) edges ---
         if cond_edge_ids:
@@ -105,13 +121,19 @@ class EdgeProcessor:
         # Mark selected edge as TAKEN
         self._sm.mark_edge_taken(selected_eid)
         target = selected_edge.head
-        in_ids = self._graph.forward_in_edges(target)
-        if self._sm.is_node_ready(target, in_ids):
-            self._enqueue(target)
+        wflog(f"  branch SELECTED: {node_id} -> {target}")
+        if target != "__end__":
+            in_ids = self._graph.forward_in_edges(target)
+            if self._sm.is_node_ready(target, in_ids):
+                wflog(f"    ✓ READY → enqueue {target} | incoming {self._edge_states(in_ids)}")
+                self._enqueue(target)
+            else:
+                wflog(f"    … WAIT {target} (join not satisfied) | incoming {self._edge_states(in_ids)}")
 
         # Skip all non-selected conditional edges
         for eid, edge in cond_edges:
             if eid != selected_eid:
+                wflog(f"  branch SKIP: {node_id} -> {edge.head}")
                 self._skip(eid)
 
     # ------------------------------------------------------------------

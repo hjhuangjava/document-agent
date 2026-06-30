@@ -9,6 +9,7 @@ import asyncio
 from collections import deque
 from collections.abc import AsyncGenerator
 
+from app.engine.workflow.debug_log import wflog
 from app.engine.workflow.edge_processor import EdgeProcessor
 from app.engine.workflow.event_handler import EventHandler
 from app.engine.workflow.events import (
@@ -67,18 +68,35 @@ class GraphEngine:
 
         all_node_ids = list(self._graph.nodes.keys())
 
-        # Enqueue root node
-        root = self._graph.root_node_id
-        self._ready_queue.append(root)
-        self._state_manager.mark_node_taken(root)
+        # Resolve all __start__ edges so that root nodes are not blocked by an
+        # UNKNOWN entry edge when readiness is evaluated.
+        for eid, edge in self._graph.edges.items():
+            if edge.tail == "__start__":
+                self._state_manager.mark_edge_taken(eid)
+
+        # Enqueue every root node (there can be multiple parallel entry points
+        # fanning out from __start__).
+        roots = getattr(self._graph, "root_node_ids", None) or [self._graph.root_node_id]
+        wflog("=" * 60)
+        wflog(f"RUN START | total nodes={len(all_node_ids)} | roots={roots}")
+        for root in roots:
+            if root not in self._ready_queue:
+                self._ready_queue.append(root)
+                self._state_manager.mark_node_taken(root)
+        wflog(f"ready_queue (initial) = {list(self._ready_queue)}")
 
         try:
+            executed: list[str] = []
             while self._ready_queue:
                 node_id = self._ready_queue.popleft()
 
                 node = self._graph.nodes.get(node_id)
                 if node is None:
                     continue
+
+                executed.append(node_id)
+                name = self._graph.node_names.get(node_id, node_id)
+                wflog(f"▶ EXECUTE: {name} ({node_id}) | remaining queue={list(self._ready_queue)}")
 
                 # Execute node via BaseNode.run_async lifecycle
                 async for event in node.run_async():
@@ -91,6 +109,13 @@ class GraphEngine:
                 # which enqueues subsequent nodes. Loop continues.
 
             # All nodes resolved
+            skipped = [
+                nid for nid in all_node_ids
+                if nid not in executed
+            ]
+            wflog(f"RUN DONE | executed({len(executed)})={executed} | not-executed={skipped}")
+            wflog("=" * 60)
+
             outputs = {
                 nid: self._pool.get_node_outputs(nid)
                 for nid in all_node_ids
@@ -99,6 +124,7 @@ class GraphEngine:
             yield GraphRunSucceededEvent(outputs=outputs)
 
         except Exception as e:
+            wflog(f"RUN FAILED | error={e}")
             yield GraphRunFailedEvent(error=str(e))
 
     # ------------------------------------------------------------------

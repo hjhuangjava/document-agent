@@ -112,7 +112,13 @@ async def run_workflow(wf_id: int, payload: WorkflowRunRequest, db: Session = De
     pool.set_system("_messages", [])
 
     runtime_state = GraphRuntimeState(variable_pool=pool)
-    print("topology--------------------------", topology)
+    _node_ids = [n.get("id") for n in topology["nodes"]]
+    _edges = [f"{e.get('source')} -> {e.get('target')}" for e in topology["edges"]]
+    print(f"topology-------------------------- nodes={len(_node_ids)} edges={len(_edges)}", flush=True)
+    for _nid in _node_ids:
+        print(f"  node: {_nid}", flush=True)
+    for _e in _edges:
+        print(f"  edge: {_e}", flush=True)
     graph = Graph.from_topology(topology, node_factory, runtime_state)
     engine = GraphEngine(graph, runtime_state)
 
